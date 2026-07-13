@@ -1,0 +1,8 @@
+numpy
+matplotlib
+pandas
+scikit-fuzzy
+pytest
+coverage
+scipy
+networkx
