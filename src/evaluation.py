@@ -6,7 +6,8 @@ Función reutilizable de evaluación y comparación con regla rígida.
 from skfuzzy import control as ctrl
 
 
-def evaluate_student(scholarship_control, promedio_value, asistencia_value, participacion_value):
+def evaluate_student(scholarship_control, promedio_value, asistencia_value, participacion_value,
+                     situacion_economica_value=None):
     """
     Evalúa a un estudiante usando el sistema difuso.
 
@@ -15,6 +16,7 @@ def evaluate_student(scholarship_control, promedio_value, asistencia_value, part
         promedio_value     : Promedio académico (0–20).
         asistencia_value   : Porcentaje de asistencia (0–100).
         participacion_value: Nivel de participación (0–10).
+        situacion_economica_value: Situación económica (0–10), opcional.
 
     Retorna:
         dict con los valores de entrada, puntaje difuso y categoría.
@@ -23,6 +25,14 @@ def evaluate_student(scholarship_control, promedio_value, asistencia_value, part
     simulator.input['promedio'] = promedio_value
     simulator.input['asistencia'] = asistencia_value
     simulator.input['participacion'] = participacion_value
+
+    if situacion_economica_value is None:
+        situacion_economica_value = 5.0
+
+    try:
+        simulator.input['situacion_economica'] = situacion_economica_value
+    except (KeyError, ValueError):
+        pass
 
     try:
         simulator.compute()
@@ -38,13 +48,15 @@ def evaluate_student(scholarship_control, promedio_value, asistencia_value, part
     else:
         category = 'Alta prioridad'
 
-    return {
+    result = {
         'promedio': promedio_value,
         'asistencia': asistencia_value,
         'participacion': participacion_value,
+        'situacion_economica': situacion_economica_value,
         'prioridad_score': round(score, 2),
-        'categoria': category
+        'categoria': category,
     }
+    return result
 
 
 def rigid_rule(promedio_value, asistencia_value, participacion_value):
@@ -60,11 +72,11 @@ def rigid_rule(promedio_value, asistencia_value, participacion_value):
 
 # Dataset de los 7 estudiantes definidos en el laboratorio
 ESTUDIANTES = [
-    {'nombre': 'Estudiante 1', 'promedio': 19, 'asistencia': 95, 'participacion': 9},
-    {'nombre': 'Estudiante 2', 'promedio': 16, 'asistencia': 85, 'participacion': 7},
-    {'nombre': 'Estudiante 3', 'promedio': 13, 'asistencia': 78, 'participacion': 6},
-    {'nombre': 'Estudiante 4', 'promedio': 11, 'asistencia': 60, 'participacion': 4},
-    {'nombre': 'Estudiante 5', 'promedio': 9,  'asistencia': 45, 'participacion': 2},
-    {'nombre': 'Estudiante 6', 'promedio': 12, 'asistencia': 95, 'participacion': 9},
-    {'nombre': 'Estudiante 7', 'promedio': 18, 'asistencia': 70, 'participacion': 5},
+    {'nombre': 'Estudiante 1', 'promedio': 19, 'asistencia': 95, 'participacion': 9, 'situacion_economica': 2},
+    {'nombre': 'Estudiante 2', 'promedio': 16, 'asistencia': 85, 'participacion': 7, 'situacion_economica': 4},
+    {'nombre': 'Estudiante 3', 'promedio': 13, 'asistencia': 78, 'participacion': 6, 'situacion_economica': 5},
+    {'nombre': 'Estudiante 4', 'promedio': 11, 'asistencia': 60, 'participacion': 4, 'situacion_economica': 7},
+    {'nombre': 'Estudiante 5', 'promedio': 9,  'asistencia': 45, 'participacion': 2, 'situacion_economica': 9},
+    {'nombre': 'Estudiante 6', 'promedio': 12, 'asistencia': 95, 'participacion': 9, 'situacion_economica': 3},
+    {'nombre': 'Estudiante 7', 'promedio': 18, 'asistencia': 70, 'participacion': 5, 'situacion_economica': 6},
 ]
