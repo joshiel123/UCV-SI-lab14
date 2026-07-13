@@ -7,8 +7,8 @@ Cobertura con: coverage run -m pytest tests/ && coverage xml
 
 import pytest
 from src.system import build_system
-from src.evaluation import evaluate_student, rigid_rule
-from src.dataset import ESTUDIANTES
+from src.evaluation import evaluate_student, rigid_rule, ESTUDIANTES
+from src.dataset import ESTUDIANTES as DATASET_ESTUDIANTES
 from src.membership import create_variables
 
 
@@ -55,6 +55,38 @@ class TestVariables:
         assert 'baja' in prioridad_beca.terms
         assert 'media' in prioridad_beca.terms
         assert 'alta' in prioridad_beca.terms
+
+    def test_promedio_universe_range(self):
+        promedio, _, _, _ = create_variables()
+        assert promedio.universe[0] == 0
+        assert promedio.universe[-1] == 20
+
+    def test_asistencia_universe_range(self):
+        _, asistencia, _, _ = create_variables()
+        assert asistencia.universe[0] == 0
+        assert asistencia.universe[-1] == 100
+
+    def test_participacion_universe_range(self):
+        _, _, participacion, _ = create_variables()
+        assert participacion.universe[0] == 0
+        assert participacion.universe[-1] == 10
+
+    def test_prioridad_universe_range(self):
+        _, _, _, prioridad_beca = create_variables()
+        assert prioridad_beca.universe[0] == 0
+        assert prioridad_beca.universe[-1] == 100
+
+
+# ============================================================
+# Tests: build_system
+# ============================================================
+class TestBuildSystem:
+
+    def test_sistema_no_es_none(self, sistema):
+        assert sistema is not None
+
+    def test_sistema_tiene_reglas(self, sistema):
+        assert len(list(sistema.rules)) == 10
 
 
 # ============================================================
@@ -103,6 +135,68 @@ class TestEvaluateStudent:
         result = evaluate_student(sistema, 16, 85, 7)
         assert isinstance(result['prioridad_score'], float)
 
+    def test_estudiante_1(self, sistema):
+        result = evaluate_student(sistema, 19, 95, 9)
+        assert result['categoria'] == 'Alta prioridad'
+
+    def test_estudiante_2(self, sistema):
+        result = evaluate_student(sistema, 16, 85, 7)
+        assert result['prioridad_score'] > 0
+
+    def test_estudiante_3(self, sistema):
+        result = evaluate_student(sistema, 13, 78, 6)
+        assert result['categoria'] == 'Prioridad media'
+
+    def test_estudiante_4(self, sistema):
+        result = evaluate_student(sistema, 11, 60, 4)
+        assert result['categoria'] == 'Baja prioridad'
+
+    def test_estudiante_5(self, sistema):
+        result = evaluate_student(sistema, 9, 45, 2)
+        assert result['categoria'] == 'Baja prioridad'
+
+    def test_estudiante_6(self, sistema):
+        result = evaluate_student(sistema, 12, 95, 9)
+        assert result['categoria'] == 'Prioridad media'
+
+    def test_estudiante_7(self, sistema):
+        result = evaluate_student(sistema, 18, 70, 5)
+        assert result['categoria'] == 'Alta prioridad'
+
+    def test_score_redondeado_2_decimales(self, sistema):
+        result = evaluate_student(sistema, 16, 85, 7)
+        score_str = str(result['prioridad_score'])
+        if '.' in score_str:
+            assert len(score_str.split('.')[1]) <= 2
+
+
+# ============================================================
+# Tests: análisis de sensibilidad
+# ============================================================
+class TestSensibilidad:
+
+    def test_sensibilidad_rango_completo(self, sistema):
+        for avg in range(0, 21):
+            result = evaluate_student(sistema, avg, 85, 7)
+            assert 0 <= result['prioridad_score'] <= 100
+
+    def test_sensibilidad_retorna_dict(self, sistema):
+        result = evaluate_student(sistema, 10, 85, 7)
+        assert isinstance(result, dict)
+
+    def test_sensibilidad_extremo_alto(self, sistema):
+        result = evaluate_student(sistema, 20, 100, 10)
+        assert result['prioridad_score'] <= 100
+
+    def test_sensibilidad_extremo_bajo(self, sistema):
+        result = evaluate_student(sistema, 9, 45, 2)
+        assert result['prioridad_score'] >= 0
+
+    def test_promedio_alto_aumenta_prioridad(self, sistema):
+        result_bajo = evaluate_student(sistema, 9, 45, 2)
+        result_alto = evaluate_student(sistema, 19, 95, 9)
+        assert result_alto['prioridad_score'] > result_bajo['prioridad_score']
+
 
 # ============================================================
 # Tests: rigid_rule
@@ -127,6 +221,15 @@ class TestRigidRule:
     def test_retorna_string(self):
         resultado = rigid_rule(10, 50, 3)
         assert isinstance(resultado, str)
+
+    def test_todos_valores_minimos(self):
+        assert rigid_rule(0, 0, 0) == 'No alta prioridad'
+
+    def test_todos_valores_maximos(self):
+        assert rigid_rule(20, 100, 10) == 'Alta prioridad'
+
+    def test_exactamente_bajo_umbral(self):
+        assert rigid_rule(15, 79, 6) == 'No alta prioridad'
 
 
 # ============================================================
@@ -155,3 +258,26 @@ class TestDataset:
     def test_participaciones_en_rango(self):
         for est in ESTUDIANTES:
             assert 0 <= est['participacion'] <= 10
+
+    def test_dataset_modulo_coincide(self):
+        assert len(DATASET_ESTUDIANTES) == len(ESTUDIANTES)
+
+    def test_nombres_son_string(self):
+        for est in ESTUDIANTES:
+            assert isinstance(est['nombre'], str)
+
+    def test_promedios_son_numericos(self):
+        for est in ESTUDIANTES:
+            assert isinstance(est['promedio'], (int, float))
+
+    def test_primer_estudiante_alta_prioridad(self, sistema):
+        est = ESTUDIANTES[0]
+        result = evaluate_student(sistema, est['promedio'],
+                                  est['asistencia'], est['participacion'])
+        assert result['categoria'] == 'Alta prioridad'
+
+    def test_quinto_estudiante_baja_prioridad(self, sistema):
+        est = ESTUDIANTES[4]
+        result = evaluate_student(sistema, est['promedio'],
+                                  est['asistencia'], est['participacion'])
+        assert result['categoria'] == 'Baja prioridad'
