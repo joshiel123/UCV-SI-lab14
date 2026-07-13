@@ -8,6 +8,23 @@ import skfuzzy as fuzz
 from skfuzzy import control as ctrl
 
 
+class VariablesBundle:
+    """Contenedor compatible con la interfaz anterior del laboratorio."""
+
+    def __init__(self, promedio, asistencia, participacion, situacion_economica, prioridad_beca):
+        self.promedio = promedio
+        self.asistencia = asistencia
+        self.participacion = participacion
+        self.situacion_economica = situacion_economica
+        self.prioridad_beca = prioridad_beca
+
+    def __iter__(self):
+        yield self.promedio
+        yield self.asistencia
+        yield self.participacion
+        yield self.prioridad_beca
+
+
 def create_variables():
     """
     Crea y retorna las variables de entrada y salida con sus
@@ -20,6 +37,7 @@ def create_variables():
     promedio = ctrl.Antecedent(np.arange(0, 21, 1), 'promedio')
     asistencia = ctrl.Antecedent(np.arange(0, 101, 1), 'asistencia')
     participacion = ctrl.Antecedent(np.arange(0, 11, 1), 'participacion')
+    situacion_economica = ctrl.Antecedent(np.arange(0, 11, 1), 'situacion_economica')
 
     # Variable de salida (consecuente)
     prioridad_beca = ctrl.Consequent(np.arange(0, 101, 1), 'prioridad_beca')
@@ -46,10 +64,17 @@ def create_variables():
     participacion['alta'] = fuzz.trapmf(participacion.universe, [7, 9, 10, 10])
 
     # ----------------------------------------------------------
+    # Situación económica (0 – 10)
+    # ----------------------------------------------------------
+    situacion_economica['baja'] = fuzz.trapmf(situacion_economica.universe, [0, 0, 3, 5])
+    situacion_economica['media'] = fuzz.trimf(situacion_economica.universe, [4, 6, 8])
+    situacion_economica['alta'] = fuzz.trapmf(situacion_economica.universe, [7, 9, 10, 10])
+
+    # ----------------------------------------------------------
     # Prioridad de beca (0 – 100) — salida
     # ----------------------------------------------------------
     prioridad_beca['baja'] = fuzz.trapmf(prioridad_beca.universe, [0, 0, 30, 45])
     prioridad_beca['media'] = fuzz.trimf(prioridad_beca.universe, [35, 55, 75])
     prioridad_beca['alta'] = fuzz.trapmf(prioridad_beca.universe, [65, 80, 100, 100])
 
-    return promedio, asistencia, participacion, prioridad_beca
+    return VariablesBundle(promedio, asistencia, participacion, situacion_economica, prioridad_beca)

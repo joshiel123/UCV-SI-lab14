@@ -86,7 +86,11 @@ class TestBuildSystem:
         assert sistema is not None
 
     def test_sistema_tiene_reglas(self, sistema):
-        assert len(list(sistema.rules)) == 10
+        assert len(list(sistema.rules)) == 14
+
+    def test_sistema_legacy_sin_variable_economica(self):
+        sistema_legacy = build_system(include_economic_variable=False)
+        assert len(list(sistema_legacy.rules)) == 10
 
 
 # ============================================================
